@@ -1,25 +1,46 @@
+#!/usr/bin/env python3
 import yfinance as yf
 import pprint as pp
+import argparse
 
 def main():
-	spy = yf.download('SPY')
-	#SPY.head()
-	#pp.pprint(spy)
-	spy_dict = spy.to_dict()
-	#pp.pprint(spy_dict)
-
-	starting_balance = 0
-	monthly_investment = 2000
-	red_day_threshold = .5
-	max_investment_per_month = 1
-	interest_rate_annual = 0.01
+	parser = argparse.ArgumentParser(description="Compare investing strategy of buying on 1st of month versus on first occuring red days")
+	parser.add_argument("-b","--starting_balance",help="Starting amount (default=0)", default=0)
+	parser.add_argument("-a","--monthly_investment",help="Dollar amount to invest each month (default=500)",default=500)
+	parser.add_argument("-t","--red_day_threshold",help="Red day threshold - invest if security drops at least this much in percentage (default=0.5%%)",default=.5)
+	parser.add_argument("-m","--max_times_to_invest_each_month",help="Invest money over the course of the first occuring N red days (default=2)",default=2)
+	parser.add_argument("-s","--stock",help="Stock or ETF to run this analysis for (from Yahoo finance API)",required=True)
+	parser.add_argument("-i","--interest",help="Assumed annual savings interest rate to keep money in while waiting to invest it (default=1%%)",default=1)
+	args = vars(parser.parse_args())
+	### Print Args ###
+	print ("Compare investing strategy of buying on 1st of month versus on first occuring red days")
+	print("v1.0")
+	print("#######################################################################################################")
+	print ("Running with the following parameters:")
+	for arg in args:
+		print (arg,":",args[arg])
+	
+	
+	starting_balance = args["starting_balance"]
+	stock= args["stock"]
+	monthly_investment = args["monthly_investment"]
+	red_day_threshold = args["red_day_threshold"]
+	max_investment_per_month = args["max_times_to_invest_each_month"]
+	interest_rate_annual = float(args["interest"]/100)
+	
 	interest_rate_daily = interest_rate_annual/365
 	min_to_buy = monthly_investment/max_investment_per_month
-	close = spy_dict["Close"]
+	stock_data = yf.download(stock)
+	data_dict = stock_data.to_dict()
+	close = data_dict["Close"]
 
 	final_value,buys = buy_the_dip(starting_balance,monthly_investment, red_day_threshold, max_investment_per_month,close,min_to_buy,interest_rate_daily)
 	asap_final,asap_buys = buy_asap(starting_balance,monthly_investment, red_day_threshold, max_investment_per_month,close)
-	print("buy_the_dip: {}, Invest ASAP: {} for a total of {}% difference".format(final_value,asap_final,abs(1-final_value/asap_final)*100))
+	difference = abs(1-final_value/asap_final)*100
+	if final_value > asap_final:
+		print("Buy on red days beat buying ASAP: ${} vs ${} for a difference of {}%".format(final_value,asap_final,difference))
+	if final_value <= asap_final:
+		print("Buying ASAP beat buying only on red days: ${} vs ${} for a difference of {}%".format(asap_final,final_value,difference))
 	with open("output_file.txt","w") as f:
 		f.write("Month_year\tbuy_the_dip\tasap\n")
 		for month_year in buys:
@@ -38,7 +59,7 @@ def buy_the_dip(starting_balance,monthly_investment, red_day_threshold, max_inve
 		#print(date_obj)
 		if first:
 			first = False
-			print(date_obj)
+			print("Data goes as far back as {}".format(date_obj))
 			continue
 		if current_close == 0:
 			current_close = close[date_obj]
@@ -82,9 +103,9 @@ def buy_the_dip(starting_balance,monthly_investment, red_day_threshold, max_inve
 		current_close = close[date_obj]
 	final_value = shares*current_close
 	avg_days_btw_buys = sum(avg_days_btw_buys)/len(avg_days_btw_buys)
-	print(avg_days_btw_buys)
-	print(interest_accrued)
-	print(total_spent)
+	#print(avg_days_btw_buys)
+	#print(interest_accrued)
+	print("Total invested buying on red days ${}".format(total_spent))
 	return(final_value,buys)
 
 def buy_asap(starting_balance,monthly_investment, red_day_threshold, max_investment_per_month,close):
@@ -116,7 +137,7 @@ def buy_asap(starting_balance,monthly_investment, red_day_threshold, max_investm
 			buys[month_year] = shares*close[date_obj]
 		current_close = close[date_obj]
 	final_value = shares*close[date_obj]
-	print(total_spent)
+	print("Total invested buying asap ${}".format(total_spent))
 	return(final_value,buys)
 
 
