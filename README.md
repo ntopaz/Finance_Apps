@@ -1,9 +1,8 @@
 # Finance_Apps
 Collection of scripts for analyzing and backtesting financial data
 
-## Compare strategy of lump sum investing on first of each month versus spending same monthly investment over course of the first occuring X red days
 
-compare_dca_lumpsum.py
+Compare strategy of lump sum investing on first of each month versus spending same monthly investment over course of the first occuring X red days
 ```
 usage: compare_dca_lumpsum.py [-h] [-b STARTING_BALANCE] [-a MONTHLY_INVESTMENT] [-t RED_DAY_THRESHOLD] [-m MAX_TIMES_TO_INVEST_EACH_MONTH] -s STOCK [-i INTEREST]
 
